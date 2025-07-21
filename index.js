@@ -157,21 +157,7 @@ app.put("/users/membership/:email", async (req, res) => {
 
 
 
-// GET /api/users?search=someName
-app.get("/apy/users", async (req, res) => {
-  const searchTerm = req.query.search || "";
-  try {
-    const cursor = users.find({
-      name: { $regex: searchTerm, $options: "i" },
-    }).project({ password: 0 }); // exclude password
 
-    const result = await cursor.toArray();
-    res.json(result);
-  } catch (err) {
-    console.error("Error fetching users:", err);
-    res.status(500).json({ message: "Failed to fetch users" });
-  }
-});
 
 // PATCH /api/users/admin/:id
 app.patch("/apy/users/admin/:id", async (req, res) => {
