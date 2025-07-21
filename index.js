@@ -380,26 +380,7 @@ app.patch("/posts/vote/:id", async (req, res) => {
 
     // ========== COMMENTS ==========
 
-    // 1. GET all comments of a post
-    app.get("/comments/:postId", async (req, res) => {
-      const { postId } = req.params;
-
-      if (!ObjectId.isValid(postId)) {
-        return res.status(400).send({ message: "Invalid postId" });
-      }
-
-      try {
-        const commentsList = await comments
-          .find({ postId : new ObjectId(postId) })
-          .sort({ createdAt: -1 })
-          .toArray();
-
-        res.send(commentsList);
-      } catch (error) {
-        console.error("Error fetching comments:", error);
-        res.status(500).send({ message: "Server error fetching comments" });
-      }
-    });
+   
 
     // 2. POST a new comment
     app.post("/comments", async (req, res) => {
