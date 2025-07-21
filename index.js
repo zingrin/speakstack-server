@@ -572,7 +572,7 @@ app.get("/tags", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch tags" });
   }
 });
- // ✅ GET all reports
+// ✅ GET all reports
     app.get("/api/reports", async (req, res) => {
       try {
         const result = await reports.find().toArray();
@@ -583,6 +583,7 @@ app.get("/tags", async (req, res) => {
       }
     });
 
+ 
     // ✅ PATCH: Mark report as resolved
     app.patch("/api/reports/:id", async (req, res) => {
       const id = req.params.id;
