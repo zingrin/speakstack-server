@@ -489,6 +489,24 @@ app.patch("/posts/vote/:id", async (req, res) => {
     });
 
 
+   // ✅ GET notifications
+    app.get("/notifications", async (req, res) => {
+      const data = await notifications
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray();
+      res.send(data);
+    });
+    // ✅ POST: Mark one as read
+    app.post("/notifications/:id/read", async (req, res) => {
+      const { id } = req.params;
+      await notifications.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { read: true } }
+      );
+      res.send({ success: true });
+    });
    
 // 🔹 Get admin stats: total posts, comments, users
 app.get("/admin/stats", async (req, res) => {
