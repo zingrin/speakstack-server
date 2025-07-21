@@ -605,13 +605,11 @@ app.patch("/api/users/membership/:email", async (req, res) => {
   const { membership } = req.body;
 
   try {
-    // Update membership status in users collection
     const updateResult = await usersCollection.updateOne(
       { email },
       { $set: { membership } }
     );
 
-    // Save payment record in payments collection
     const paymentDoc = {
       email,
       membership,
