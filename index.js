@@ -162,7 +162,7 @@ app.get("/apy/users", async (req, res) => {
   try {
     const cursor = users.find({
       name: { $regex: searchTerm, $options: "i" },
-    }).project({ password: 0 }); // exclude password
+    }).project({ password: 0 });
 
     const result = await cursor.toArray();
     res.json(result);
@@ -196,21 +196,6 @@ app.patch("/apy/users/admin/:id", async (req, res) => {
 
 
 
-// DELETE /posts/:id
-app.delete("/posts/:id", async (req, res) => {
-  const id = req.params.id;
-  try {
-    const result = await posts.deleteOne({ _id: new ObjectId(id) });
-    if (result.deletedCount === 1) {
-      res.send({ success: true });
-    } else {
-      res.status(404).send({ error: "Post not found" });
-    }
-  } catch (error) {
-    console.error("Delete failed:", error);
-    res.status(500).send({ error: "Server error" });
-  }
-});
 // POST /posts - Add a new post
     app.post("/posts", async (req, res) => {
       const postData = req.body;
