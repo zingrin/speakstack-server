@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRECT_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -106,7 +107,7 @@ app.delete("/posts/:id", async (req, res) => {
 });
 
 
-// GET user profile by email
+// // GET user profile by email
 app.get('/users/profile/:email', async (req, res) => {
   try {
     const email = req.params.email;
@@ -123,6 +124,12 @@ app.get('/users/profile/:email', async (req, res) => {
   }
 });
 
+// Example: GET /api/users/profile/:email
+app.get("/api/users/profile/:email", async (req, res) => {
+  const email = req.params.email;
+  const user = await usersCollection.findOne({ email });
+  res.send(user);
+});
 
 
 app.put("/users/membership/:email", async (req, res) => {
@@ -489,7 +496,7 @@ app.patch("/posts/vote/:id", async (req, res) => {
     });
 
 
-   // ✅ GET notifications
+   //  GET notifications
     app.get("/notifications", async (req, res) => {
       const data = await notifications
         .find({})
@@ -498,7 +505,7 @@ app.patch("/posts/vote/:id", async (req, res) => {
         .toArray();
       res.send(data);
     });
-    // ✅ POST: Mark one as read
+    //  POST: Mark one as read
     app.post("/notifications/:id/read", async (req, res) => {
       const { id } = req.params;
       await notifications.updateOne(
@@ -517,7 +524,7 @@ app.get("/admin/stats", async (req, res) => {
       comments.countDocuments(),
     ]);
 
-    // ✅ Fetch first admin 
+    //  Fetch first admin 
     const adminInfo = await admins.findOne(); 
 
     if (!adminInfo) {
@@ -572,19 +579,17 @@ app.get("/tags", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch tags" });
   }
 });
-// ✅ GET all reports
+    //  GET: All Reports
     app.get("/api/reports", async (req, res) => {
       try {
         const result = await reports.find().toArray();
         res.send(result);
       } catch (err) {
-        console.error("Failed to fetch reports:", err);
-        res.status(500).send({ message: "Error fetching reports" });
+        res.status(500).send({ message: "Failed to fetch reports" });
       }
     });
 
- 
-    // ✅ PATCH: Mark report as resolved
+ //  PATCH: Resolve a Report
     app.patch("/api/reports/:id", async (req, res) => {
       const id = req.params.id;
       try {
@@ -594,50 +599,84 @@ app.get("/tags", async (req, res) => {
         );
         res.send(result);
       } catch (err) {
-        console.error("Failed to update report:", err);
-        res.status(500).send({ message: "Error resolving report" });
+        res.status(500).send({ message: "Failed to update report" });
       }
     });
 
-app.patch("/api/users/membership/:email", async (req, res) => {
-  const email = req.params.email;
-  const { membership } = req.body;
 
+// POST: Create Report
+app.post("/api/reports", async (req, res) => {
   try {
-    const updateResult = await usersCollection.updateOne(
-      { email },
-      { $set: { membership } }
-    );
-
-    const paymentDoc = {
-      email,
-      membership,
-      amount: 200, 
-      paymentMethod: "manual/simulated", 
-      status: "success",
-      date: new Date(),
-    };
-
-    const paymentResult = await payments.insertOne(paymentDoc);
-
-    res.send({
-      updateResult,
-      paymentResult,
-      message: "Membership updated and payment recorded",
-    });
+    const report = req.body;
+    const result = await reports.insertOne(report);
+    res.send(result);
   } catch (error) {
-    console.error("Membership update error:", error);
-    res.status(500).send({ message: "Failed to update membership" });
+    console.error("Error reporting post:", error);
+    res.status(500).send({ message: "Internal Server Error" });
   }
 });
 
 
+
+app.post("/api/create-payment-intent", async (req, res) => {
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0) {
+    return res.status(400).send({ error: "Invalid amount" });
+  }
+
+  const amountInCents = Math.round((amount / 100) * 100); 
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: "usd", 
+      payment_method_types: ["card"],
+    });
+
+    res.send({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error("Stripe error:", error);
+    res.status(500).send({ error: "Failed to create payment intent" });
+  }
+});
+
+   
+    //  POST: Save payment info after successful Stripe payment
+app.post("/api/payments", async (req, res) => {
+  try {
+    const payment = req.body;
+    const result = await payments.insertOne(payment);
+    res.send(result);
+  } catch (err) {
+    console.error("Failed to save payment:", err);
+    res.status(500).send({ error: "Failed to save payment" });
+  }});
+
+//  PATCH: Update user's membership status
+app.patch("/api/users/membership/:email", async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { membership } = req.body;
+
+    const result = await users.updateOne(
+      { email },
+      { $set: { membership } }
+    );
+
+    res.send(result);
+  } catch (err) {
+    console.error("Failed to update membership:", err);
+    res.status(500).send({ error: "Membership update failed" });
+  }
+});
+
     // ========== ROOT ==========
 
     app.get("/", (req, res) => {
-      res.send("✅ SpeakStack Server Running");
+      res.send(" SpeakStack Server Running");
     });
-    console.log("✅ MongoDB connected");
+    console.log(" MongoDB connected");
 
     app.listen(port, () => {
       console.log(`Server running on port:${port}`);
