@@ -454,6 +454,21 @@ app.patch("/posts/vote/:id", async (req, res) => {
       }
     });
 
+// ✅ GET: Comments by post ID
+    app.get("/api/comments/:postId", async (req, res) => {
+      const postId = req.params.postId;
+      try {
+        const result = await comments
+          .find({ postId: postId })
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to fetch comments:", error);
+        res.status(500).send({ error: "Failed to fetch comments" });
+      }
+    });
+
+    
 
       // POST /api/announcements - add announcement
   app.post("/announcements", async (req, res) => {
@@ -494,27 +509,69 @@ app.patch("/posts/vote/:id", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch announcements" });
       }
     });
+app.post("/api/announcements", async (req, res) => {
+  const { title, content, date } = req.body;
+
+  try {
+    const announcement = {
+      title,
+      content,
+      date: date || new Date(),
+    };
+
+    const announceResult = await announcements.insertOne(announcement);
+
+    // Also insert as notification
+    await notifications.insertOne({
+      title: `📢 New Announcement: ${title}`,
+      date: new Date(),
+      read: false,
+    });
+
+    res.send(announceResult);
+  } catch (err) {
+    console.error("Failed to post announcement:", err);
+    res.status(500).send({ error: "Failed to post announcement" });
+  }
+});
 
 
-   //  GET notifications
-    app.get("/notifications", async (req, res) => {
-      const data = await notifications
-        .find({})
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .toArray();
-      res.send(data);
-    });
-    //  POST: Mark one as read
-    app.post("/notifications/:id/read", async (req, res) => {
-      const { id } = req.params;
-      await notifications.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { read: true } }
-      );
-      res.send({ success: true });
-    });
-   
+
+// 🔔 GET: All notifications (sorted newest first)
+app.get("/api/notifications", async (req, res) => {
+  try {
+    const noti = await notifications
+      .find({})
+      .sort({ date: -1 })
+      .toArray();
+
+    res.send(noti);
+  } catch (err) {
+    console.error("Failed to fetch notifications:", err);
+    res.status(500).send({ error: "Failed to fetch notifications" });
+  }
+});
+
+//  POST: Mark a notification as read
+app.post("/api/notifications/:id/read", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await notifications.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { read: true } }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.send({ message: "Notification marked as read" });
+    } else {
+      res.status(404).send({ error: "Notification not found" });
+    }
+  } catch (err) {
+    console.error("Failed to mark notification as read:", err);
+    res.status(500).send({ error: "Internal server error" });
+  }
+});
+
 // 🔹 Get admin stats: total posts, comments, users
 app.get("/admin/stats", async (req, res) => {
   try {
@@ -546,7 +603,7 @@ app.get("/admin/stats", async (req, res) => {
 });
 
 
-// 🔹 POST /tags - Add a new tag
+// //  POST /tags - Add a new tag
 app.post("/tags", async (req, res) => {
   try {
     const { name } = req.body;
@@ -569,7 +626,7 @@ app.post("/tags", async (req, res) => {
   }
 });
 
-// 🔹 GET /tags - Fetch all tags
+//  GET /tags - Fetch all tags
 app.get("/tags", async (req, res) => {
   try {
     const result = await tags.find().sort({ name: 1 }).toArray();
@@ -579,7 +636,7 @@ app.get("/tags", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch tags" });
   }
 });
-    //  GET: All Reports
+    // //  GET: All Reports
     app.get("/api/reports", async (req, res) => {
       try {
         const result = await reports.find().toArray();
@@ -588,6 +645,10 @@ app.get("/tags", async (req, res) => {
         res.status(500).send({ message: "Failed to fetch reports" });
       }
     });
+
+
+
+
 
  //  PATCH: Resolve a Report
     app.patch("/api/reports/:id", async (req, res) => {
