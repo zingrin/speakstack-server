@@ -178,7 +178,12 @@ app.get("/apy/users", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 });
+app.get("/users/role/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await users.findOne({ email });
 
+      res.json({ role: user?.role || "user" });
+    });
 
 // PATCH /api/users/admin/:id
 app.patch("/apy/users/admin/:id", async (req, res) => {
