@@ -390,6 +390,24 @@ app.patch("/posts/vote/:id", async (req, res) => {
   }
 });
 
+// GET /posts?tag=xxx&sort=newest|oldest
+app.get("/posts", async (req, res) => {
+  try {
+    const { tag, sort } = req.query;
+
+    const query = tag
+      ? { tags: { $in: [tag.toLowerCase()] } }
+      : {};
+
+    const sortOption = sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
+
+    const postsList = await posts.find(query).sort(sortOption).toArray();
+    res.send(postsList);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Failed to fetch posts" });
+  }
+});
 
     // ========== COMMENTS ==========
 
