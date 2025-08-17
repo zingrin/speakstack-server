@@ -28,8 +28,7 @@ async function run() {
     const payments = db.collection("payments");
     const admins = db.collection("admins")
     const tags = db.collection("tags")
-    const courses = db.collection("trendingCourses");
-    
+    const courses = db.collection("trendingCourses")
     // ========== USERS ==========
     // sociallogin users
     app.patch("/api/users", async (req, res) => {
@@ -391,24 +390,6 @@ app.patch("/posts/vote/:id", async (req, res) => {
   }
 });
 
-// GET /posts?tag=xxx&sort=newest|oldest
-app.get("/posts", async (req, res) => {
-  try {
-    const { tag, sort } = req.query;
-
-    const query = tag
-      ? { tags: { $in: [tag.toLowerCase()] } }
-      : {};
-
-    const sortOption = sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
-
-    const postsList = await posts.find(query).sort(sortOption).toArray();
-    res.send(postsList);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Failed to fetch posts" });
-  }
-});
 
     // ========== COMMENTS ==========
 
@@ -756,9 +737,47 @@ app.patch("/api/users/membership/:email", async (req, res) => {
     res.status(500).send({ error: "Membership update failed" });
   }
 });
+// PATCH /posts/filter
+app.patch("/api/filter", async (req, res) => {
+  try {
+    const { tag = "", sort = "newest" } = req.body;
+    const query = tag
+      ? {
+          $or: [
+            { tags: { $in: [tag.toLowerCase()] } },
+            { title: { $regex: tag, $options: "i" } },
+            { content: { $regex: tag, $options: "i" } },
+          ],
+        }
+      : {};
+    const sortOption = sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
+    const filteredPosts = await posts.find(query).sort(sortOption).toArray();
+    res.status(200).json({ success: true, data: filteredPosts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to filter posts" });
+  }
+});
 
+// GET /posts?tag=xxx&sort=newest|oldest
+app.get("/posts", async (req, res) => {
+  try {
+    const { tag, sort } = req.query;
 
-    // GET all trending courses
+    const query = tag
+      ? { tags: { $in: [tag.toLowerCase()] } }
+      : {};
+
+    const sortOption = sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
+
+    const postsList = await posts.find(query).sort(sortOption).toArray();
+    res.send(postsList);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Failed to fetch posts" });
+  }
+});
+// GET all trending courses
     app.get("/api/trending-courses", async (req, res) => {
       try {
         const courses1 = await courses.find().toArray();
@@ -783,6 +802,7 @@ app.patch("/api/users/membership/:email", async (req, res) => {
         res.status(500).json({ message: "Failed to fetch course" });
       }
     });
+
     // ========== ROOT ==========
 
     app.get("/", (req, res) => {
