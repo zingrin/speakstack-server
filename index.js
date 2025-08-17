@@ -28,6 +28,7 @@ async function run() {
     const payments = db.collection("payments");
     const admins = db.collection("admins")
     const tags = db.collection("tags")
+    const bookings = db.collection("bookings");
     // ========== USERS ==========
     // sociallogin users
     app.patch("/api/users", async (req, res) => {
@@ -736,6 +737,7 @@ app.patch("/api/users/membership/:email", async (req, res) => {
     res.status(500).send({ error: "Membership update failed" });
   }
 });
+
 
     // ========== ROOT ==========
 
