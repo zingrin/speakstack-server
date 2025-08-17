@@ -28,7 +28,8 @@ async function run() {
     const payments = db.collection("payments");
     const admins = db.collection("admins")
     const tags = db.collection("tags")
-    const bookings = db.collection("bookings");
+    const courses = db.collection("trendingCourses");
+    
     // ========== USERS ==========
     // sociallogin users
     app.patch("/api/users", async (req, res) => {
@@ -757,6 +758,31 @@ app.patch("/api/users/membership/:email", async (req, res) => {
 });
 
 
+    // GET all trending courses
+    app.get("/api/trending-courses", async (req, res) => {
+      try {
+        const courses1 = await courses.find().toArray();
+        res.json(courses1);
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to fetch courses" });
+      }
+    });
+ // GET single course by id
+    app.get("/api/trending-courses/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid ID" });
+
+        const course = await courses.findOne({ _id: new ObjectId(id) });
+        if (!course) return res.status(404).json({ message: "Course not found" });
+
+        res.json(course);
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to fetch course" });
+      }
+    });
     // ========== ROOT ==========
 
     app.get("/", (req, res) => {
